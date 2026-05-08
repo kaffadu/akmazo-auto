@@ -77,13 +77,18 @@ contactForm?.addEventListener('submit', async e => {
   btn.disabled = true;
 
   try {
-    const res = await fetch('https://formspree.io/f/mojrngyk', {
+    const data = new FormData(contactForm);
+    data.append('access_key', 'e18b4aa7-f29e-41c5-a80c-2b52b2a6b509');
+
+    const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      body: new FormData(contactForm),
+      body: data,
       headers: { Accept: 'application/json' }
     });
 
-    if (res.ok) {
+    const json = await res.json();
+
+    if (json.success) {
       btn.textContent = '✓ Message Sent!';
       btn.style.background = '#25D366';
       contactForm.reset();
