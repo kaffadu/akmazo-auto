@@ -16,8 +16,11 @@ app.use(cors({
     'https://akmazoglobal.com',
     'https://kaffadu.github.io',
     'http://localhost:3000'
-  ]
+  ],
+  allowedHeaders: ['Content-Type', 'x-api-key'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']
 }));
+app.options('*', cors());
 app.use(express.json());
 
 async function initDB() {
