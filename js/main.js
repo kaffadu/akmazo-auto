@@ -82,13 +82,12 @@ contactForm?.addEventListener('submit', async e => {
 
     const res = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      body: data,
-      headers: { Accept: 'application/json' }
+      body: data
     });
 
     const json = await res.json();
 
-    if (json.success) {
+    if (res.ok) {
       btn.textContent = '✓ Message Sent!';
       btn.style.background = '#25D366';
       contactForm.reset();
@@ -98,7 +97,7 @@ contactForm?.addEventListener('submit', async e => {
         btn.style.background = '';
       }, 3000);
     } else {
-      throw new Error('Failed');
+      throw new Error(json.message || 'Failed');
     }
   } catch {
     btn.textContent = '✗ Failed — try WhatsApp';
