@@ -1,7 +1,5 @@
 // ===== AKMAZO AUTO SOLUTIONS - INVENTORY SEARCH =====
 
-// Copart: use ?query= (query string, not hash) to avoid SPA help-centre redirect
-// IAA: capital-S Search page with ?query= parameter
 const COPART_BASE = 'https://www.copart.com/search/';
 const IAA_BASE    = 'https://www.iaai.com/Search';
 
@@ -50,14 +48,14 @@ function buildSearchTerm(make, model, yearFrom) {
   return parts.join(' ');
 }
 
-// Use ?query= (server-side query string) so Copart's SPA router doesn't intercept it as a hash route
 function buildCopartUrl(make, model, yearFrom) {
-  return `${COPART_BASE}?query=${encodeURIComponent(buildSearchTerm(make, model, yearFrom))}`;
+  const term = buildSearchTerm(make, model, yearFrom);
+  return `${COPART_BASE}#?query=${encodeURIComponent(term)}`;
 }
 
-// IAA Search (capital S) with ?query= parameter
 function buildIAAUrl(make, model, yearFrom) {
-  return `${IAA_BASE}?query=${encodeURIComponent(buildSearchTerm(make, model, yearFrom))}`;
+  const term = buildSearchTerm(make, model, yearFrom);
+  return `${IAA_BASE}?SearchText=${encodeURIComponent(term)}&paging.startIndex=0&paging.rows=25`;
 }
 
 // Populate make select dropdown
