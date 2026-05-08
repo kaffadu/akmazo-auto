@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium  = require('@sparticuz/chromium');
 const { Pool }  = require('pg');
 
 const pool = new Pool({
@@ -8,14 +9,10 @@ const pool = new Pool({
 
 async function launchBrowser() {
   return puppeteer.launch({
-    headless: 'new',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--window-size=1280,900'
-    ]
+    args:           chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless:       chromium.headless,
+    defaultViewport: { width: 1280, height: 900 }
   });
 }
 
