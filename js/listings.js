@@ -38,11 +38,22 @@ function startHeroSlideshow(cars) {
   const tagLabel = document.querySelector('.car-tag span');
   const tagName  = document.querySelector('.car-tag strong');
 
-  if (!heroImg || !cars.length) return;
+  if (!heroImg) return;
 
-  // Only use cars that have images
-  const slides = cars.filter(c => c.image_url);
-  if (!slides.length) return;
+  // Keep the original yellow car as the first slide
+  const original = {
+    image_url:   heroImg.src,
+    make:        'Toyota',
+    model:       'Land Cruiser',
+    year:        '',
+    source:      'Featured',
+    badge:       'Featured Import',
+    listing_url: null
+  };
+
+  // Combine original + hot deal cars that have images
+  const slides = [original, ...cars.filter(c => c.image_url)];
+  if (slides.length < 2) return;
 
   let current = 0;
 
