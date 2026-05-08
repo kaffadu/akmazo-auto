@@ -24,13 +24,64 @@ function buildCard(car, index) {
           ${car.condition? `<div class="car-spec"><span class="spec-label">Condition</span><span class="spec-value">${car.condition}</span></div>` : ''}
         </div>
         <div class="car-footer">
-          <div class="car-price">${car.price ? '$' + car.price : 'Contact Us'} <span>Buy Now™</span></div>
+          <div class="car-price">${car.price ? '$' + Number(car.price).toLocaleString() : 'Contact Us'} <span>Buy Now™</span></div>
           <div class="car-cta">${cta}</div>
         </div>
       </div>
     </a>`;
 }
 
+// ===== HERO SLIDESHOW =====
+function startHeroSlideshow(cars) {
+  const heroImg  = document.querySelector('.hero-car-image img');
+  const heroLink = document.querySelector('.hero-car-image');
+  const tagLabel = document.querySelector('.car-tag span');
+  const tagName  = document.querySelector('.car-tag strong');
+
+  if (!heroImg || !cars.length) return;
+
+  // Only use cars that have images
+  const slides = cars.filter(c => c.image_url);
+  if (!slides.length) return;
+
+  let current = 0;
+
+  function goTo(index) {
+    const car = slides[index];
+
+    // Fade out
+    heroImg.style.transition = 'opacity 0.5s ease';
+    heroImg.style.opacity    = '0';
+
+    setTimeout(() => {
+      heroImg.src = car.image_url;
+      heroImg.alt = `${car.make} ${car.model}`;
+
+      if (tagLabel) tagLabel.textContent = `${car.source || 'IAA'} · ${car.badge || 'Hot Deal'}`;
+      if (tagName)  tagName.textContent  = `${car.year || ''} ${car.make} ${car.model}`;
+
+      // Update link to listing
+      if (heroLink && car.listing_url) {
+        heroLink.style.cursor = 'pointer';
+        heroLink.onclick = () => window.open(car.listing_url, '_blank', 'noopener,noreferrer');
+      }
+
+      // Fade in
+      heroImg.style.opacity = '1';
+    }, 500);
+  }
+
+  // Start immediately with first listing
+  goTo(0);
+
+  // Cycle every 4 seconds
+  setInterval(() => {
+    current = (current + 1) % slides.length;
+    goTo(current);
+  }, 4000);
+}
+
+// ===== LOAD LISTINGS =====
 async function loadListings() {
   const grid = document.getElementById('listingsGrid');
   if (!grid) return;
@@ -50,6 +101,10 @@ async function loadListings() {
 
     grid.innerHTML = cars.map((car, i) => buildCard(car, i)).join('');
     grid.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Start hero slideshow with the loaded cars
+    startHeroSlideshow(cars);
+
   } catch {
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#8A92A8;">
