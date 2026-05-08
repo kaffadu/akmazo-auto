@@ -1,5 +1,5 @@
 // ===== AKMAZO - LIVE LISTINGS FROM RENDER API =====
-const API_URL = 'https://akmazo-api.onrender.com/api/listings';
+const API_URL = 'https://akmazo-auto-web-backend.onrender.com/api/listings';
 
 function buildCard(car, index) {
   const delays = ['', 'fade-in-delay-1', 'fade-in-delay-2', 'fade-in-delay-3'];
