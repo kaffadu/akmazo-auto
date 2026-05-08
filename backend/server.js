@@ -1,8 +1,6 @@
 const express  = require('express');
 const cors     = require('cors');
-const cron     = require('node-cron');
 const { Pool } = require('pg');
-const { runScraper } = require('./scraper');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -15,13 +13,13 @@ const pool = new Pool({
 app.use(cors({
   origin: [
     'https://www.akmazoglobal.com',
+    'https://akmazoglobal.com',
     'https://kaffadu.github.io',
     'http://localhost:3000'
   ]
 }));
 app.use(express.json());
 
-// ===== DB INIT =====
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS listings (
@@ -36,7 +34,7 @@ async function initDB() {
       badge       VARCHAR(50),
       source      VARCHAR(20)  DEFAULT 'IAA',
       image_url   TEXT,
-      listing_url TEXT UNIQUE,
+      listing_url TEXT,
       active      BOOLEAN      DEFAULT true,
       created_at  TIMESTAMP    DEFAULT NOW()
     )
@@ -46,34 +44,21 @@ async function initDB() {
 
 initDB().catch(console.error);
 
-// ===== CRON: scrape every 6 hours =====
-cron.schedule('0 */6 * * *', async () => {
-  console.log('Running scheduled scrape...');
-  try {
-    await runScraper();
-  } catch (err) {
-    console.error('Scheduled scrape failed:', err.message);
+function authCheck(req, res, next) {
+  if (req.headers['x-api-key'] !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-});
+  next();
+}
 
-// Run once on startup (after 10s to let DB init finish)
-setTimeout(async () => {
-  try {
-    await runScraper();
-  } catch (err) {
-    console.error('Startup scrape failed:', err.message);
-  }
-}, 10000);
-
-// ===== ROUTES =====
-
+// Health check
 app.get('/', (req, res) => res.json({ status: 'Akmazo API running' }));
 
-// GET active listings
+// GET all active listings
 app.get('/api/listings', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM listings WHERE active = true ORDER BY created_at DESC LIMIT 12'
+      'SELECT * FROM listings WHERE active = true ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (err) {
@@ -82,11 +67,20 @@ app.get('/api/listings', async (req, res) => {
   }
 });
 
-// POST manual listing (protected)
-app.post('/api/listings', async (req, res) => {
-  if (req.headers['x-api-key'] !== process.env.ADMIN_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
+// GET all listings including inactive (admin)
+app.get('/api/admin/listings', authCheck, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM listings ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch listings' });
   }
+});
+
+// POST new listing
+app.post('/api/listings', authCheck, async (req, res) => {
   const { make, model, year, price, condition, engine, drive, badge, source, image_url, listing_url } = req.body;
   try {
     const { rows } = await pool.query(
@@ -101,29 +95,26 @@ app.post('/api/listings', async (req, res) => {
   }
 });
 
-// DELETE listing (soft-delete, protected)
-app.delete('/api/listings/:id', async (req, res) => {
-  if (req.headers['x-api-key'] !== process.env.ADMIN_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+// PATCH toggle active status
+app.patch('/api/listings/:id', authCheck, async (req, res) => {
   try {
-    await pool.query('UPDATE listings SET active = false WHERE id = $1', [req.params.id]);
-    res.json({ success: true });
+    const { rows } = await pool.query(
+      'UPDATE listings SET active = NOT active WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+    res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to remove listing' });
+    res.status(500).json({ error: 'Failed to update listing' });
   }
 });
 
-// Manual scrape trigger (protected)
-app.post('/api/scrape', async (req, res) => {
-  if (req.headers['x-api-key'] !== process.env.ADMIN_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  res.json({ message: 'Scrape started' });
+// DELETE listing permanently
+app.delete('/api/listings/:id', authCheck, async (req, res) => {
   try {
-    await runScraper();
+    await pool.query('DELETE FROM listings WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
   } catch (err) {
-    console.error('Manual scrape failed:', err.message);
+    res.status(500).json({ error: 'Failed to delete listing' });
   }
 });
 

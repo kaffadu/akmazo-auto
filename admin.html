@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akmazo Admin — Manage Listings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0A0D14;
+      color: #E2E8F0;
+      min-height: 100vh;
+    }
+
+    /* ===== LOGIN ===== */
+    #loginScreen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: #12151F;
+      border: 1px solid #1E2333;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #F5A623;
+    }
+
+    .login-box p { color: #8A92A8; font-size: 14px; margin-bottom: 28px; }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #1A2035;
+      border: 1px solid #1E2333;
+      border-radius: 10px;
+      color: #E2E8F0;
+      font-size: 15px;
+      margin-bottom: 14px;
+      outline: none;
+    }
+
+    .login-box input:focus { border-color: #F5A623; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #F5A623, #E8941A);
+      color: #0A0D14;
+      font-weight: 800;
+      font-size: 15px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover { opacity: 0.9; }
+    #loginError { color: #FC8181; font-size: 13px; margin-top: 10px; }
+
+    /* ===== MAIN LAYOUT ===== */
+    #adminApp { display: none; }
+
+    header {
+      background: #12151F;
+      border-bottom: 1px solid #1E2333;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 18px; font-weight: 800; color: #F5A623; }
+    header span { font-size: 13px; color: #8A92A8; }
+
+    .logout-btn {
+      background: #1A2035;
+      border: 1px solid #1E2333;
+      color: #8A92A8;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .logout-btn:hover { color: #E2E8F0; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+    /* ===== ADD FORM ===== */
+    .card {
+      background: #12151F;
+      border: 1px solid #1E2333;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 32px;
+    }
+
+    .card h2 { font-size: 17px; font-weight: 800; margin-bottom: 20px; color: #F5A623; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    label { display: block; font-size: 12px; color: #8A92A8; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: #1A2035;
+      border: 1px solid #1E2333;
+      border-radius: 9px;
+      color: #E2E8F0;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: #F5A623; }
+    textarea { resize: vertical; min-height: 60px; }
+    select option { background: #1A2035; }
+
+    .img-preview {
+      width: 100%;
+      height: 140px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #1A2035;
+      border: 1px dashed #1E2333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8A92A8;
+      font-size: 13px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 4px; }
+
+    .btn-save {
+      padding: 11px 28px;
+      background: linear-gradient(135deg, #F5A623, #E8941A);
+      color: #0A0D14;
+      font-weight: 800;
+      font-size: 14px;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .btn-save:hover { opacity: 0.9; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-clear {
+      padding: 11px 20px;
+      background: #1A2035;
+      border: 1px solid #1E2333;
+      color: #8A92A8;
+      font-size: 14px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    /* ===== LISTINGS TABLE ===== */
+    .listings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .listings-header h2 { font-size: 17px; font-weight: 800; color: #F5A623; }
+
+    .count-badge {
+      background: #1A2035;
+      border: 1px solid #1E2333;
+      color: #8A92A8;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .listing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .listing-item {
+      background: #12151F;
+      border: 1px solid #1E2333;
+      border-radius: 13px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .listing-item.inactive { opacity: 0.45; }
+    .listing-item:hover { border-color: #2A3050; }
+
+    .listing-item img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: #1A2035;
+    }
+
+    .listing-info { padding: 14px; }
+    .listing-source { font-size: 11px; font-weight: 700; color: #F5A623; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .listing-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .listing-price { font-size: 13px; color: #8A92A8; margin-bottom: 12px; }
+
+    .listing-actions { display: flex; gap: 8px; }
+
+    .btn-toggle {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid #1E2333;
+      background: #1A2035;
+      color: #8A92A8;
+    }
+
+    .btn-toggle.active-btn { background: rgba(72,187,120,0.15); border-color: #48BB78; color: #48BB78; }
+
+    .btn-delete {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid rgba(252,129,129,0.3);
+      background: rgba(252,129,129,0.1);
+      color: #FC8181;
+    }
+
+    .btn-delete:hover { background: rgba(252,129,129,0.2); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8A92A8;
+      grid-column: 1/-1;
+    }
+
+    .empty-state div { font-size: 40px; margin-bottom: 12px; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #12151F;
+      border: 1px solid rgba(72,187,120,0.4);
+      color: #48BB78;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.error { border-color: rgba(252,129,129,0.4); color: #FC8181; }
+
+    @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>🚗 Akmazo Admin</h1>
+    <p>Enter your admin key to manage listings</p>
+    <input type="password" id="apiKeyInput" placeholder="Admin API key" />
+    <button class="btn-primary" onclick="login()">Sign In</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- ===== ADMIN APP ===== -->
+<div id="adminApp">
+  <header>
+    <h1>🚗 Akmazo Admin</h1>
+    <span id="headerStatus"></span>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </header>
+
+  <div class="container">
+
+    <!-- Add Listing Form -->
+    <div class="card">
+      <h2>+ Add New Listing</h2>
+      <form id="addForm" onsubmit="addListing(event)">
+        <div class="form-grid">
+          <div>
+            <label>Source</label>
+            <select id="f_source" required>
+              <option value="IAA">IAA</option>
+              <option value="Copart">Copart</option>
+            </select>
+          </div>
+          <div>
+            <label>Badge</label>
+            <select id="f_badge">
+              <option value="BUY NOW">BUY NOW</option>
+              <option value="HOT DEAL">HOT DEAL</option>
+              <option value="AUCTION">AUCTION</option>
+              <option value="POPULAR">POPULAR</option>
+              <option value="PREMIUM">PREMIUM</option>
+              <option value="LUXURY">LUXURY</option>
+              <option value="BEST VALUE">BEST VALUE</option>
+              <option value="FAMILY SUV">FAMILY SUV</option>
+            </select>
+          </div>
+          <div>
+            <label>Make *</label>
+            <input type="text" id="f_make" placeholder="e.g. Toyota" required />
+          </div>
+          <div>
+            <label>Model *</label>
+            <input type="text" id="f_model" placeholder="e.g. Camry SE" required />
+          </div>
+          <div>
+            <label>Year</label>
+            <input type="number" id="f_year" placeholder="e.g. 2022" min="2000" max="2030" />
+          </div>
+          <div>
+            <label>Price (USD, numbers only)</label>
+            <input type="text" id="f_price" placeholder="e.g. 6800" />
+          </div>
+          <div>
+            <label>Engine</label>
+            <input type="text" id="f_engine" placeholder="e.g. 2.5L I4" />
+          </div>
+          <div>
+            <label>Drive</label>
+            <input type="text" id="f_drive" placeholder="e.g. AWD" />
+          </div>
+          <div>
+            <label>Condition</label>
+            <input type="text" id="f_condition" placeholder="e.g. Run &amp; Drive" />
+          </div>
+          <div class="full">
+            <label>Image URL (paste from IAA/Copart listing)</label>
+            <input type="url" id="f_image_url" placeholder="https://..." oninput="previewImage(this.value)" />
+            <div class="img-preview" id="imgPreview">
+              <span>Image preview will appear here</span>
+            </div>
+          </div>
+          <div class="full">
+            <label>Listing URL (link to the actual IAA or Copart page)</label>
+            <input type="url" id="f_listing_url" placeholder="https://www.iaai.com/vehicle/..." />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
+          <button type="submit" class="btn-save" id="saveBtn">Save Listing</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Current Listings -->
+    <div class="listings-header">
+      <h2>Current Listings</h2>
+      <span class="count-badge" id="listingCount">0 listings</span>
+    </div>
+    <div class="listing-grid" id="listingGrid">
+      <div class="empty-state"><div>🚗</div><p>No listings yet. Add your first one above.</p></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API = 'https://akmazo-auto-web-backend.onrender.com';
+  let API_KEY = '';
+
+  async function login() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) return;
+
+    try {
+      const res = await fetch(`${API}/api/admin/listings`, {
+        headers: { 'x-api-key': key }
+      });
+      if (!res.ok) throw new Error('Invalid key');
+      API_KEY = key;
+      localStorage.setItem('akmazo_admin_key', key);
+      showApp();
+      loadListings();
+    } catch {
+      document.getElementById('loginError').textContent = 'Invalid API key. Please try again.';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('akmazo_admin_key');
+    API_KEY = '';
+    document.getElementById('adminApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  function showApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+  }
+
+  // Auto-login if key saved
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('akmazo_admin_key');
+    if (saved) {
+      document.getElementById('apiKeyInput').value = saved;
+      API_KEY = saved;
+      showApp();
+      loadListings();
+    }
+    document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+  });
+
+  async function loadListings() {
+    try {
+      const res  = await fetch(`${API}/api/admin/listings`, { headers: { 'x-api-key': API_KEY } });
+      const data = await res.json();
+      renderListings(data);
+    } catch {
+      showToast('Failed to load listings', true);
+    }
+  }
+
+  function renderListings(listings) {
+    const grid = document.getElementById('listingGrid');
+    document.getElementById('listingCount').textContent = `${listings.length} listing${listings.length !== 1 ? 's' : ''}`;
+    document.getElementById('headerStatus').textContent = `${listings.filter(l => l.active).length} active`;
+
+    if (!listings.length) {
+      grid.innerHTML = '<div class="empty-state"><div>🚗</div><p>No listings yet. Add your first one above.</p></div>';
+      return;
+    }
+
+    grid.innerHTML = listings.map(l => `
+      <div class="listing-item ${l.active ? '' : 'inactive'}" id="item-${l.id}">
+        <img src="${l.image_url || ''}" alt="${l.make} ${l.model}"
+             onerror="this.style.background='#1A2035';this.removeAttribute('src')" />
+        <div class="listing-info">
+          <div class="listing-source">${l.source} · ${l.badge || ''}</div>
+          <div class="listing-name">${l.year || ''} ${l.make} ${l.model}</div>
+          <div class="listing-price">${l.price ? '$' + Number(l.price).toLocaleString() : 'Price TBC'} · ${l.condition || ''}</div>
+          <div class="listing-actions">
+            <button class="btn-toggle ${l.active ? 'active-btn' : ''}" onclick="toggleListing(${l.id}, ${l.active})">
+              ${l.active ? '✓ Live' : 'Hidden'}
+            </button>
+            <a href="${l.listing_url || '#'}" target="_blank" style="padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:#1A2035;border:1px solid #1E2333;color:#8A92A8;text-decoration:none;">View ↗</a>
+            <button class="btn-delete" onclick="deleteListing(${l.id})">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function addListing(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const body = {
+      source:      document.getElementById('f_source').value,
+      badge:       document.getElementById('f_badge').value,
+      make:        document.getElementById('f_make').value,
+      model:       document.getElementById('f_model').value,
+      year:        document.getElementById('f_year').value || null,
+      price:       document.getElementById('f_price').value,
+      engine:      document.getElementById('f_engine').value,
+      drive:       document.getElementById('f_drive').value,
+      condition:   document.getElementById('f_condition').value,
+      image_url:   document.getElementById('f_image_url').value,
+      listing_url: document.getElementById('f_listing_url').value
+    };
+
+    try {
+      const res = await fetch(`${API}/api/listings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error();
+      showToast('Listing saved successfully!');
+      clearForm();
+      loadListings();
+    } catch {
+      showToast('Failed to save listing', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Listing';
+    }
+  }
+
+  async function toggleListing(id, currentActive) {
+    try {
+      await fetch(`${API}/api/listings/${id}`, {
+        method: 'PATCH',
+        headers: { 'x-api-key': API_KEY }
+      });
+      showToast(currentActive ? 'Listing hidden from site' : 'Listing now live on site');
+      loadListings();
+    } catch {
+      showToast('Failed to update listing', true);
+    }
+  }
+
+  async function deleteListing(id) {
+    if (!confirm('Permanently delete this listing?')) return;
+    try {
+      await fetch(`${API}/api/listings/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-api-key': API_KEY }
+      });
+      showToast('Listing deleted');
+      loadListings();
+    } catch {
+      showToast('Failed to delete listing', true);
+    }
+  }
+
+  function previewImage(url) {
+    const preview = document.getElementById('imgPreview');
+    if (url) {
+      preview.innerHTML = `<img src="${url}" onerror="this.parentElement.innerHTML='<span>Invalid image URL</span>'" />`;
+    } else {
+      preview.innerHTML = '<span>Image preview will appear here</span>';
+    }
+  }
+
+  function clearForm() {
+    document.getElementById('addForm').reset();
+    document.getElementById('imgPreview').innerHTML = '<span>Image preview will appear here</span>';
+  }
+
+  function showToast(msg, isError = false) {
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    const t = document.createElement('div');
+    t.className = `toast${isError ? ' error' : ''}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+</script>
+</body>
+</html>
