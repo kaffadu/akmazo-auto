@@ -69,21 +69,39 @@ document.querySelectorAll('.hero-stats').forEach(el => counterObserver.observe(e
 
 // Contact form handler
 const contactForm = document.getElementById('contactForm');
-contactForm?.addEventListener('submit', e => {
+contactForm?.addEventListener('submit', async e => {
   e.preventDefault();
   const btn = contactForm.querySelector('button[type="submit"]');
   const original = btn.textContent;
   btn.textContent = 'Sending...';
   btn.disabled = true;
 
-  setTimeout(() => {
-    btn.textContent = '✓ Message Sent!';
-    btn.style.background = '#25D366';
-    contactForm.reset();
+  try {
+    const res = await fetch('https://formspree.io/f/mojrngyk', {
+      method: 'POST',
+      body: new FormData(contactForm),
+      headers: { Accept: 'application/json' }
+    });
+
+    if (res.ok) {
+      btn.textContent = '✓ Message Sent!';
+      btn.style.background = '#25D366';
+      contactForm.reset();
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+        btn.style.background = '';
+      }, 3000);
+    } else {
+      throw new Error('Failed');
+    }
+  } catch {
+    btn.textContent = '✗ Failed — try WhatsApp';
+    btn.style.background = '#e53e3e';
+    btn.disabled = false;
     setTimeout(() => {
       btn.textContent = original;
-      btn.disabled = false;
       btn.style.background = '';
-    }, 3000);
-  }, 1500);
+    }, 4000);
+  }
 });
