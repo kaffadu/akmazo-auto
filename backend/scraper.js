@@ -28,22 +28,34 @@ async function scrapeIAA() {
 
     console.log('Scraping IAA Buy Now...');
     await page.goto('https://www.iaai.com/Search?SearchText=&auctiontypes=BUY_NOW&paging.startIndex=0&paging.rows=24', {
-      waitUntil: 'networkidle2',
-      timeout: 60000
+      waitUntil: 'domcontentloaded',
+      timeout: 90000
     });
 
-    // Let JS finish rendering
-    await new Promise(r => setTimeout(r, 4000));
+    // Wait for content to render
+    await new Promise(r => setTimeout(r, 8000));
+
+    // Log page title and body snippet for debugging
+    const iaaDebug = await page.evaluate(() => ({
+      title: document.title,
+      bodySnippet: document.body.innerHTML.substring(0, 500),
+      allClasses: [...new Set(Array.from(document.querySelectorAll('[class]')).map(el => el.className.toString().split(' ')).flat().filter(c => c.length > 3 && c.length < 40))].slice(0, 30)
+    }));
+    console.log('IAA title:', iaaDebug.title);
+    console.log('IAA classes found:', iaaDebug.allClasses.join(', '));
 
     const raw = await page.evaluate(() => {
-      // IAA uses multiple possible class patterns — try all
       const selectors = [
         '[class*="vehicle-card"]',
         '[class*="VehicleCard"]',
-        '[class*="listing"]',
+        '[class*="vehicleCard"]',
+        '[class*="vehicle-item"]',
+        '[class*="listing-item"]',
         '[class*="search-result"]',
+        '[class*="SearchResult"]',
         'li[class*="item"]',
-        '.row[class*="vehicle"]'
+        '[class*="lot-item"]',
+        '[class*="card-container"]'
       ];
 
       let cards = [];
@@ -55,9 +67,9 @@ async function scrapeIAA() {
       return cards.slice(0, 20).map(card => {
         const img      = card.querySelector('img');
         const allLinks = card.querySelectorAll('a[href]');
-        const link     = Array.from(allLinks).find(a => a.href.includes('/vehicle/') || a.href.includes('/VehicleDetails')) || allLinks[0];
+        const link     = Array.from(allLinks).find(a => a.href.includes('/vehicle/') || a.href.includes('/VehicleDetails') || a.href.includes('/lot/')) || allLinks[0];
         const texts    = card.querySelectorAll('h1,h2,h3,h4,p,span,div');
-        const allText  = Array.from(texts).map(t => t.textContent.trim()).filter(Boolean);
+        const allText  = Array.from(texts).map(t => t.textContent.trim()).filter(t => t.length > 1 && t.length < 200);
 
         return {
           image_url:   img?.src || img?.getAttribute('data-src') || '',
@@ -123,20 +135,30 @@ async function scrapeCopart() {
     await page.setViewport({ width: 1280, height: 900 });
 
     console.log('Scraping Copart...');
-    await page.goto('https://www.copart.com/search/#?query=toyota honda hyundai lexus&searchCriteria=', {
-      waitUntil: 'networkidle2',
-      timeout: 60000
+    await page.goto('https://www.copart.com/search/', {
+      waitUntil: 'domcontentloaded',
+      timeout: 90000
     });
 
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 8000));
+
+    const copartDebug = await page.evaluate(() => ({
+      title: document.title,
+      allClasses: [...new Set(Array.from(document.querySelectorAll('[class]')).map(el => el.className.toString().split(' ')).flat().filter(c => c.length > 3 && c.length < 40))].slice(0, 30)
+    }));
+    console.log('Copart title:', copartDebug.title);
+    console.log('Copart classes found:', copartDebug.allClasses.join(', '));
 
     const raw = await page.evaluate(() => {
       const selectors = [
         'tr.lot-row',
+        'tr[data-uname]',
         '[class*="lot-card"]',
+        '[class*="LotCard"]',
         '[class*="vehicle-card"]',
         '[class*="search-result"]',
-        'tr[data-uname]'
+        '[class*="lot-item"]',
+        'div[class*="card"]'
       ];
 
       let cards = [];
@@ -150,7 +172,7 @@ async function scrapeCopart() {
         const allLinks = card.querySelectorAll('a[href]');
         const link     = Array.from(allLinks).find(a => a.href.includes('/lot/') || a.href.includes('lotDetails')) || allLinks[0];
         const texts    = Array.from(card.querySelectorAll('span,td,div,p,h1,h2,h3'))
-                           .map(t => t.textContent.trim()).filter(Boolean);
+                           .map(t => t.textContent.trim()).filter(t => t.length > 1 && t.length < 200);
 
         return {
           image_url:   img?.src || img?.getAttribute('data-src') || '',
