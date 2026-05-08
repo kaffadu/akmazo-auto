@@ -365,6 +365,7 @@ body {
   height: 360px;
   object-fit: cover;
   filter: brightness(0.9);
+  transition: opacity 0.6s ease;
 }
 
 .hero-car-image::after {

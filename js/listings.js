@@ -34,58 +34,68 @@ function buildCard(car, index) {
 // ===== HERO SLIDESHOW =====
 function startHeroSlideshow(cars) {
   const heroImg  = document.querySelector('.hero-car-image img');
-  const heroLink = document.querySelector('.hero-car-image');
   const tagLabel = document.querySelector('.car-tag span');
   const tagName  = document.querySelector('.car-tag strong');
+  const heroCard = document.querySelector('.hero-car-image');
 
   if (!heroImg) return;
 
-  // Keep the original yellow car as the first slide
-  const original = {
-    image_url:   heroImg.src,
-    make:        'Toyota',
-    model:       'Land Cruiser',
-    year:        '',
-    source:      'Featured',
-    badge:       'Featured Import',
-    listing_url: null
-  };
+  // Slide 0 = yellow Mercedes (the existing hero image)
+  const slides = [
+    {
+      image_url:   heroImg.getAttribute('src'),
+      make:        'Mercedes AMG GT',
+      model:       '',
+      year:        '',
+      badge:       'Featured Import',
+      listing_url: null
+    },
+    ...cars.filter(c => c.image_url)
+  ];
 
-  // Combine original + hot deal cars that have images
-  const slides = [original, ...cars.filter(c => c.image_url)];
   if (slides.length < 2) return;
 
+  // Make sure hero image transitions smoothly
+  heroImg.style.transition = 'opacity 0.6s ease';
+
   let current = 0;
+  let busy    = false;
 
   function goTo(index) {
+    if (busy) return;
+    busy = true;
+
     const car = slides[index];
 
-    // Fade out
-    heroImg.style.transition = 'opacity 0.5s ease';
-    heroImg.style.opacity    = '0';
+    // Step 1 — fade out
+    heroImg.style.opacity = '0';
 
     setTimeout(() => {
+      // Step 2 — swap content
       heroImg.src = car.image_url;
       heroImg.alt = `${car.make} ${car.model}`;
 
-      if (tagLabel) tagLabel.textContent = `${car.source || 'IAA'} · ${car.badge || 'Hot Deal'}`;
-      if (tagName)  tagName.textContent  = `${car.year || ''} ${car.make} ${car.model}`;
+      if (tagLabel) tagLabel.textContent = car.badge || 'Hot Deal';
+      if (tagName)  tagName.textContent  = [car.year, car.make, car.model].filter(Boolean).join(' ');
 
-      // Update link to listing
-      if (heroLink && car.listing_url) {
-        heroLink.style.cursor = 'pointer';
-        heroLink.onclick = () => window.open(car.listing_url, '_blank', 'noopener,noreferrer');
+      if (heroCard) {
+        if (car.listing_url) {
+          heroCard.style.cursor = 'pointer';
+          heroCard.onclick = () => window.open(car.listing_url, '_blank', 'noopener,noreferrer');
+        } else {
+          heroCard.style.cursor = 'default';
+          heroCard.onclick = null;
+        }
       }
 
-      // Fade in
+      // Step 3 — fade in
       heroImg.style.opacity = '1';
-    }, 500);
+
+      setTimeout(() => { busy = false; }, 700);
+    }, 650);
   }
 
-  // Start immediately with first listing
-  goTo(0);
-
-  // Cycle every 4 seconds
+  // Wait 4s then start cycling from slide 1 (hot deals)
   setInterval(() => {
     current = (current + 1) % slides.length;
     goTo(current);
@@ -111,12 +121,15 @@ async function loadListings() {
     }
 
     grid.innerHTML = cars.map((car, i) => buildCard(car, i)).join('');
-    grid.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-    // Start hero slideshow with the loaded cars
+    if (typeof observer !== 'undefined') {
+      grid.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    }
+
     startHeroSlideshow(cars);
 
-  } catch {
+  } catch (err) {
+    console.error('Listings error:', err);
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#8A92A8;">
         <div style="font-size:32px;margin-bottom:12px;">🚗</div>
